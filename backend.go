@@ -22,6 +22,8 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"golang.org/x/crypto/pbkdf2"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -142,10 +144,11 @@ func (m *MemoryBackend) Authenticate(client *Client, user, password string) (boo
 		return false, err
 	}
 	defer db.Close()
-	if db.Where("username = ?", user).First(&user).RecordNotFound() {
-		fmt.Println("not find")
+	var authuser auth_user
+	if db.Where("username = ?", user).First(&authuser).RecordNotFound() {
+		return false, nil
 	} else {
-		a := strings.Split(user.Password, "$")
+		a := strings.Split(authuser.Password, "$")
 		ite := a[1]
 		salt := a[2]
 		ep := a[3]
