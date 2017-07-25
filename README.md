@@ -13,7 +13,7 @@
 Get it using go's standard toolset:
 
 ```bash
-$ go get github.com/gomqtt/broker
+$ go get github.com/whyengineer/broker
 ```
 
 ## Usage

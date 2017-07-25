@@ -43,6 +43,7 @@ type Client struct {
 	conn   transport.Conn
 
 	clientID     string
+	Username     string
 	cleanSession bool
 	session      Session
 
@@ -215,6 +216,7 @@ func (c *Client) processConnect(pkt *packet.ConnectPacket) error {
 	}
 
 	// set values
+	c.Username = pkt.Username
 	c.cleanSession = pkt.CleanSession
 	c.clientID = pkt.ClientID
 
