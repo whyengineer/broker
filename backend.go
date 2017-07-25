@@ -15,10 +15,15 @@
 package broker
 
 import (
-	"sync"
-
+	"crypto/sha256"
+	"encoding/base64"
 	"github.com/gomqtt/packet"
 	"github.com/gomqtt/tools"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"golang.org/x/crypto/pbkdf2"
+	"sync"
+	"time"
 )
 
 // A Backend provides effective queuing functionality to a Broker and its Clients.
@@ -102,6 +107,24 @@ func NewMemoryBackend() *MemoryBackend {
 	}
 }
 
+type auth_user struct {
+	Id           int
+	Username     string `gorm:"size:128;not null"`
+	Last_login   time.Time
+	Is_superuser bool
+	Password     string `gorm:"size:150;not null"`
+	First_name   string `gorm:"size:30"`
+	Last_name    string `gorm:"size:30`
+	Email        string `gorm:"size:254`
+	Is_stafff    bool
+	Is_active    bool
+	Data_joined  time.Time
+}
+
+func (auth_user) TableName() string {
+	return "auth_user"
+}
+
 // Authenticate authenticates a clients credentials by matching them to the
 // saved Logins map.
 func (m *MemoryBackend) Authenticate(client *Client, user, password string) (bool, error) {
@@ -111,10 +134,31 @@ func (m *MemoryBackend) Authenticate(client *Client, user, password string) (boo
 	}
 
 	// check login
-	if pw, ok := m.Logins[user]; ok && pw == password {
-		return true, nil
+	// if pw, ok := m.Logins[user]; ok && pw == password {
+	// 	return true, nil
+	// }
+	db, err := gorm.Open("mysql", "root:71451085a@/db1?charset=utf8&parseTime=True&loc=Local")
+	if err != nil {
+		return false, err
 	}
-
+	defer db.Close()
+	if db.Where("username = ?", user).First(&user).RecordNotFound() {
+		fmt.Println("not find")
+	} else {
+		a := strings.Split(user.Password, "$")
+		ite := a[1]
+		salt := a[2]
+		ep := a[3]
+		i, err := strconv.Atoi(ite)
+		if err != nil {
+			return false, err
+		}
+		dk := pbkdf2.Key([]byte(password), []byte(salt), i, 32, sha256.New)
+		last := base64.StdEncoding.EncodeToString([]byte(dk))
+		if last == ep {
+			return true, nil
+		}
+	}
 	return false, nil
 }
 
